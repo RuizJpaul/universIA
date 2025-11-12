@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Poppins } from "next/font/google"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { AuthProvider } from "@/contexts/AuthContext"
 import "./globals.css"
 
 const _poppins = Poppins({
@@ -50,8 +51,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <AuthProvider>
+          {children}
+          <Analytics />
+        </AuthProvider>
       </body>
     </html>
   )
