@@ -21,6 +21,10 @@ import {
   FileText,
   Video,
   TrendingUp,
+  Settings,
+  User,
+  Newspaper,
+  FlaskConical,
 } from "lucide-react"
 
 export default function StudentDashboard() {
@@ -73,43 +77,55 @@ export default function StudentDashboard() {
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-light tracking-wide hover:opacity-70 transition-opacity">
+            <Link href="/" className="text-2xl font-light tracking-wide hover:opacity-80 transition">
               UNIVERSIA
             </Link>
             
-            <nav className="hidden md:flex items-center gap-12">
-              <Link href="/estudiante/dashboard" className="flex items-center gap-2 text-purple-600 font-medium">
+            <nav className="hidden md:flex items-center gap-8">
+              <Link href="/estudiante/dashboard" className="flex items-center gap-2 text-purple-600 font-medium hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
                 <Home className="w-4 h-4" />
                 Dashboard
               </Link>
-              <Link href="/estudiante/mis-cursos" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition-colors">
+              <Link href="/estudiante/mis-cursos" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
                 <BookOpen className="w-4 h-4" />
                 Mis Cursos
               </Link>
-              <Link href="/estudiante/progreso" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition-colors">
+              <Link href="/estudiante/noticias" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
+                <Newspaper className="w-4 h-4" />
+                Noticias
+              </Link>
+              <Link href="/estudiante/progreso" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
                 <TrendingUp className="w-4 h-4" />
                 Progreso
               </Link>
             </nav>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="rounded-full hover:bg-purple-50">
                 <Bell className="w-5 h-5" />
               </Button>
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <p className="font-medium text-sm">{user.name}</p>
-                  <p className="text-xs text-slate-400">Estudiante</p>
+              
+              {/* Perfil de usuario mejorado */}
+              <Link href="/estudiante/perfil">
+                <div className="flex items-center gap-3 hover:bg-slate-50 px-4 py-2 rounded-full transition-all cursor-pointer">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+                    {user.name.charAt(0)}
+                  </div>
+                  <div className="text-left hidden lg:block">
+                    <p className="font-medium text-sm">{user.name}</p>
+                    <p className="text-xs text-slate-400">Ver perfil</p>
+                  </div>
                 </div>
-                <Button
-                  onClick={logout}
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full hover:bg-slate-100"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
+              </Link>
+
+              <Button
+                onClick={logout}
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-red-50 hover:text-red-600"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -139,7 +155,7 @@ export default function StudentDashboard() {
             {/* <h1 className="text-5xl md:text-7xl font-light mb-6 tracking-tight text-slate-900">
               Hola, <span className="font-medium">{user.name}</span> 👋
             </h1> */}
-            <p className="text-2xl text-slate-600 font-light max-w-2xl">
+            <p className="text-2xl font-light max-w-2xl">
               Continúa tu aprendizaje donde lo dejaste
             </p>
           </motion.div>

@@ -8,38 +8,41 @@ import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  Play,
-  CheckCircle2,
-  Lock,
-  Download,
-  FileText,
-  Video,
+  Bot,
+  Send,
+  FlaskConical,
   BookOpen,
-  Star,
-  Clock,
-  Users,
-  Award,
-  Share2,
-  Heart,
-  ChevronRight,
   Home,
   TrendingUp,
   Bell,
   LogOut,
   MessageCircle,
-  ThumbsUp,
+  Newspaper,
+  ChevronRight,
+  ExternalLink,
+  Zap,
+  CircuitBoard,
+  Monitor,
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 
-export default function CursoDetalle() {
+export default function CursoConIA() {
   const { isAuthenticated, user, logout } = useAuth()
   const router = useRouter()
   const params = useParams()
   const courseId = params.id as string
-  const [activeLesson, setActiveLesson] = useState(0)
+  const [chatMessages, setChatMessages] = useState<Array<{role: string, message: string}>>([
+    {
+      role: "assistant",
+      message: "¡Hola! Soy tu tutor de IA para este curso. Estoy aquí para ayudarte a entender los conceptos, resolver dudas y guiarte en tus ejercicios. ¿En qué puedo ayudarte hoy?"
+    }
+  ])
+  const [inputMessage, setInputMessage] = useState("")
+  const [isTyping, setIsTyping] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -51,566 +54,513 @@ export default function CursoDetalle() {
     return null
   }
 
-  // Datos del curso (en una app real vendría de una API)
   const courseData: { [key: string]: any } = {
     "1": {
       id: "1",
       title: "Desarrollo Web Full Stack",
-      instructor: {
-        name: "Dr. Carlos Ruiz",
-        avatar: "👨‍🏫",
-        title: "Full Stack Developer & Educator",
-        students: "50,000+",
-        rating: 4.9,
-      },
-      category: "Tecnología",
+      description: "Aprende a construir aplicaciones web modernas con IA como tu tutor personal",
       progress: 75,
-      image: "💻",
-      rating: 4.8,
-      reviews: 3245,
-      students: "3,245 estudiantes",
-      duration: "12 semanas",
-      level: "Intermedio",
-      language: "Español",
-      lastUpdate: "Octubre 2024",
-      description: "Aprende a construir aplicaciones web modernas desde cero. Domina HTML, CSS, JavaScript, React, Node.js y bases de datos.",
-      whatYouLearn: [
-        "Crear interfaces modernas con HTML5 y CSS3",
-        "Desarrollar aplicaciones interactivas con JavaScript",
-        "Construir SPAs con React y hooks avanzados",
-        "Crear APIs RESTful con Node.js y Express",
-        "Trabajar con bases de datos MongoDB y SQL",
-        "Desplegar aplicaciones en producción",
-      ],
-      requirements: [
-        "Conocimientos básicos de programación",
-        "Computadora con acceso a internet",
-        "Ganas de aprender y dedicación",
-      ],
       modules: [
         {
+          id: 1,
           title: "Módulo 1: Fundamentos de HTML y CSS",
-          lessons: 12,
-          duration: "3h 45min",
-          completed: 12,
-          lessons_detail: [
-            { id: 1, title: "Introducción al desarrollo web", duration: "15:30", type: "video", completed: true },
-            { id: 2, title: "Estructura HTML básica", duration: "20:15", type: "video", completed: true },
-            { id: 3, title: "Etiquetas semánticas", duration: "18:45", type: "video", completed: true },
-            { id: 4, title: "CSS básico y selectores", duration: "25:30", type: "video", completed: true },
-            { id: 5, title: "Box model y layout", duration: "22:15", type: "video", completed: true },
-            { id: 6, title: "Flexbox en profundidad", duration: "28:45", type: "video", completed: true },
-            { id: 7, title: "CSS Grid", duration: "30:00", type: "video", completed: true },
-            { id: 8, title: "Diseño responsive", duration: "25:15", type: "video", completed: true },
-            { id: 9, title: "Ejercicio práctico 1", duration: "30:00", type: "exercise", completed: true },
-            { id: 10, title: "Recursos descargables", duration: "5:00", type: "resource", completed: true },
-            { id: 11, title: "Quiz módulo 1", duration: "15:00", type: "quiz", completed: true },
-            { id: 12, title: "Proyecto: Landing page", duration: "45:00", type: "project", completed: true },
-          ],
+          progress: 100,
+          topics: ["Estructura HTML básica", "Etiquetas semánticas", "CSS básico y selectores", "Flexbox y Grid", "Diseño responsive"]
         },
         {
+          id: 2,
           title: "Módulo 2: JavaScript Moderno",
-          lessons: 16,
-          duration: "5h 20min",
-          completed: 16,
-          lessons_detail: [
-            { id: 13, title: "Introducción a JavaScript", duration: "18:30", type: "video", completed: true },
-            { id: 14, title: "Variables y tipos de datos", duration: "22:15", type: "video", completed: true },
-            { id: 15, title: "Operadores y expresiones", duration: "20:45", type: "video", completed: true },
-            { id: 16, title: "Estructuras de control", duration: "25:30", type: "video", completed: true },
-            { id: 17, title: "Funciones y scope", duration: "28:15", type: "video", completed: true },
-            { id: 18, title: "Arrays y métodos", duration: "30:00", type: "video", completed: true },
-            { id: 19, title: "Objetos en JavaScript", duration: "25:45", type: "video", completed: true },
-            { id: 20, title: "ES6+ características", duration: "32:30", type: "video", completed: true },
-            { id: 21, title: "Arrow functions", duration: "18:15", type: "video", completed: true },
-            { id: 22, title: "Destructuring y spread", duration: "20:00", type: "video", completed: true },
-            { id: 23, title: "Promesas y async/await", duration: "35:45", type: "video", completed: true },
-            { id: 24, title: "Módulos ES6", duration: "22:30", type: "video", completed: true },
-            { id: 25, title: "Ejercicios prácticos", duration: "40:00", type: "exercise", completed: true },
-            { id: 26, title: "DOM manipulation", duration: "28:15", type: "video", completed: true },
-            { id: 27, title: "Eventos y listeners", duration: "25:00", type: "video", completed: true },
-            { id: 28, title: "Proyecto: App interactiva", duration: "60:00", type: "project", completed: true },
-          ],
+          progress: 100,
+          topics: ["Variables y tipos de datos", "Funciones y scope", "Arrays y objetos", "ES6+ características", "Async/await"]
         },
         {
+          id: 3,
           title: "Módulo 3: React Fundamentals",
-          lessons: 14,
-          duration: "4h 50min",
-          completed: 8,
-          lessons_detail: [
-            { id: 29, title: "¿Qué es React?", duration: "15:30", type: "video", completed: true },
-            { id: 30, title: "Configuración del entorno", duration: "20:15", type: "video", completed: true },
-            { id: 31, title: "JSX y componentes", duration: "25:45", type: "video", completed: true },
-            { id: 32, title: "Props y estado", duration: "28:30", type: "video", completed: true },
-            { id: 33, title: "Eventos en React", duration: "22:15", type: "video", completed: true },
-            { id: 34, title: "Listas y keys", duration: "20:00", type: "video", completed: true },
-            { id: 35, title: "Renderizado condicional", duration: "18:45", type: "video", completed: true },
-            { id: 36, title: "Forms en React", duration: "25:30", type: "video", completed: true },
-            { id: 37, title: "React Hooks Avanzados", duration: "32:15", type: "video", completed: false },
-            { id: 38, title: "useEffect en detalle", duration: "28:45", type: "video", completed: false },
-            { id: 39, title: "Custom hooks", duration: "30:00", type: "video", completed: false },
-            { id: 40, title: "Context API", duration: "25:30", type: "video", completed: false },
-            { id: 41, title: "Ejercicios React", duration: "45:00", type: "exercise", completed: false },
-            { id: 42, title: "Proyecto: Dashboard", duration: "75:00", type: "project", completed: false },
-          ],
+          progress: 60,
+          topics: ["JSX y componentes", "Props y estado", "React Hooks", "Context API", "Custom hooks"]
         },
         {
+          id: 4,
           title: "Módulo 4: Backend con Node.js",
-          lessons: 12,
-          duration: "4h 15min",
-          completed: 0,
-          lessons_detail: [
-            { id: 43, title: "Introducción a Node.js", duration: "18:30", type: "video", completed: false },
-            { id: 44, title: "NPM y dependencias", duration: "20:15", type: "video", completed: false },
-            { id: 45, title: "Express.js básico", duration: "25:45", type: "video", completed: false },
-            { id: 46, title: "Routing y middleware", duration: "28:30", type: "video", completed: false },
-            { id: 47, title: "REST APIs", duration: "30:00", type: "video", completed: false },
-            { id: 48, title: "MongoDB y Mongoose", duration: "32:15", type: "video", completed: false },
-            { id: 49, title: "Autenticación JWT", duration: "35:45", type: "video", completed: false },
-            { id: 50, title: "Validación de datos", duration: "22:30", type: "video", completed: false },
-            { id: 51, title: "Manejo de errores", duration: "20:15", type: "video", completed: false },
-            { id: 52, title: "Testing APIs", duration: "28:45", type: "video", completed: false },
-            { id: 53, title: "Despliegue en producción", duration: "25:30", type: "video", completed: false },
-            { id: 54, title: "Proyecto Final", duration: "90:00", type: "project", completed: false },
-          ],
+          progress: 0,
+          topics: ["Introducción a Node.js", "Express.js", "APIs RESTful", "MongoDB", "Autenticación JWT"]
+        }
+      ],
+      labs: [
+        {
+          id: 1,
+          name: "Tinkercad",
+          description: "Simulador de circuitos electrónicos y Arduino",
+          icon: "⚡",
+          url: "https://www.tinkercad.com/",
+          category: "Electrónica",
+          status: "available"
         },
-      ],
-      resources: [
-        { name: "Código fuente completo", type: "zip", size: "15 MB" },
-        { name: "Guía de referencia HTML/CSS", type: "pdf", size: "2.5 MB" },
-        { name: "Cheat sheet JavaScript", type: "pdf", size: "1.8 MB" },
-        { name: "Plantillas de proyectos", type: "zip", size: "8 MB" },
-      ],
+        {
+          id: 2,
+          name: "Wokwi",
+          description: "Simulador ESP32, Arduino y Raspberry Pi Pico",
+          icon: "🔌",
+          url: "https://wokwi.com/",
+          category: "Microcontroladores",
+          status: "available"
+        },
+        {
+          id: 3,
+          name: "CodeSandbox",
+          description: "IDE en línea para desarrollo web",
+          icon: "💻",
+          url: "https://codesandbox.io/",
+          category: "Desarrollo Web",
+          status: "available"
+        },
+        {
+          id: 4,
+          name: "Replit",
+          description: "Entorno de desarrollo colaborativo",
+          icon: "🚀",
+          url: "https://replit.com/",
+          category: "Programación",
+          status: "available"
+        }
+      ]
     },
+    "2": {
+      id: "2",
+      title: "Machine Learning con Python",
+      description: "Domina el aprendizaje automático con IA personalizada",
+      progress: 45,
+      modules: [
+        {
+          id: 1,
+          title: "Módulo 1: Fundamentos de Python",
+          progress: 100,
+          topics: ["Sintaxis básica", "Estructuras de datos", "POO en Python", "Numpy y Pandas", "Matplotlib"]
+        },
+        {
+          id: 2,
+          title: "Módulo 2: Machine Learning Básico",
+          progress: 45,
+          topics: ["Regresión lineal", "Clasificación", "Árboles de decisión", "K-means", "Evaluación de modelos"]
+        }
+      ],
+      labs: [
+        {
+          id: 1,
+          name: "Google Colab",
+          description: "Notebooks de Python con GPU gratis",
+          icon: "🔬",
+          url: "https://colab.research.google.com/",
+          category: "Data Science",
+          status: "available"
+        },
+        {
+          id: 2,
+          name: "Kaggle Notebooks",
+          description: "Plataforma de competencias de ML",
+          icon: "📊",
+          url: "https://www.kaggle.com/",
+          category: "Machine Learning",
+          status: "available"
+        }
+      ]
+    },
+    "3": {
+      id: "3",
+      title: "Diseño UX/UI Profesional",
+      description: "Crea experiencias increíbles con orientación de IA",
+      progress: 20,
+      modules: [
+        {
+          id: 1,
+          title: "Módulo 1: Principios de Diseño",
+          progress: 20,
+          topics: ["Teoría del color", "Tipografía", "Composición", "Espaciado y alineación", "Jerarquía visual"]
+        }
+      ],
+      labs: [
+        {
+          id: 1,
+          name: "Figma",
+          description: "Herramienta de diseño colaborativo",
+          icon: "🎨",
+          url: "https://www.figma.com/",
+          category: "Diseño",
+          status: "available"
+        }
+      ]
+    }
   }
 
-  const course = courseData[courseId]
+  const course = courseData[courseId] || courseData["1"]
 
-  if (!course) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-black mb-4">Curso no encontrado</h1>
-          <Link href="/estudiante/mis-cursos">
-            <Button className="bg-purple-600 hover:bg-purple-700">Volver a Mis Cursos</Button>
-          </Link>
-        </div>
-      </div>
-    )
+  const handleSendMessage = () => {
+    if (inputMessage.trim() === "") return
+
+    setChatMessages([...chatMessages, { role: "user", message: inputMessage }])
+    setInputMessage("")
+    setIsTyping(true)
+
+    setTimeout(() => {
+      const responses = [
+        "Excelente pregunta. Basándome en el módulo actual, te puedo explicar que...",
+        "Entiendo tu duda. Este concepto es fundamental porque...",
+        "Déjame ayudarte con eso. La forma correcta de abordar esto es...",
+        "Muy bien, veo que estás en el tema correcto. Para profundizar...",
+        "Perfecto, puedo guiarte paso a paso en este ejercicio..."
+      ]
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)]
+      
+      setChatMessages(prev => [...prev, { 
+        role: "assistant", 
+        message: `${randomResponse} En este punto del curso, es importante que practiques con los laboratorios virtuales disponibles. ¿Te gustaría que te explique algún concepto específico?` 
+      }])
+      setIsTyping(false)
+    }, 1500)
   }
-
-  const totalLessons = course.modules.reduce((acc: number, mod: any) => acc + mod.lessons, 0)
-  const completedLessons = course.modules.reduce((acc: number, mod: any) => acc + mod.completed, 0)
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navbar del Estudiante */}
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* Navbar */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-black">
+            <Link href="/" className="text-2xl font-light tracking-wide hover:opacity-80 transition">
               UNIVERSIA
             </Link>
             
             <nav className="hidden md:flex items-center gap-8">
-              <Link href="/estudiante/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition">
+              <Link href="/estudiante/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
                 <Home className="w-4 h-4" />
                 Dashboard
               </Link>
-              <Link href="/estudiante/mis-cursos" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition">
+              <Link href="/estudiante/mis-cursos" className="flex items-center gap-2 text-purple-600 font-medium hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
                 <BookOpen className="w-4 h-4" />
                 Mis Cursos
               </Link>
-              <Link href="/estudiante/progreso" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition">
+              <Link href="/estudiante/noticias" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
+                <Newspaper className="w-4 h-4" />
+                Noticias
+              </Link>
+              <Link href="/estudiante/progreso" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
                 <TrendingUp className="w-4 h-4" />
                 Progreso
               </Link>
             </nav>
 
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-purple-50">
                 <Bell className="w-5 h-5" />
               </Button>
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <p className="font-bold text-sm">{user.name}</p>
-                  <p className="text-xs text-slate-500">Estudiante</p>
+              
+              <Link href="/estudiante/perfil">
+                <div className="flex items-center gap-3 hover:bg-slate-50 px-4 py-2 rounded-full transition-all cursor-pointer">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+                    {user.name.charAt(0)}
+                  </div>
+                  <div className="text-left hidden lg:block">
+                    <p className="font-medium text-sm">{user.name}</p>
+                    <p className="text-xs text-slate-400">Ver perfil</p>
+                  </div>
                 </div>
-                <Button
-                  onClick={logout}
-                  variant="outline"
-                  size="icon"
-                  className="border-slate-200"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
+              </Link>
+
+              <Button
+                onClick={logout}
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-red-50 hover:text-red-600"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Breadcrumb */}
-      <div className="bg-slate-50 border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+      <div className="max-w-7xl mx-auto px-8 py-12">
+        {/* Header del curso */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12"
+        >
+          <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
             <Link href="/estudiante/mis-cursos" className="hover:text-purple-600">Mis Cursos</Link>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-slate-900 font-bold">{course.title}</span>
+            <span>{course.title}</span>
           </div>
-        </div>
-      </div>
+          
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h1 className="text-4xl font-light tracking-tight mb-3">{course.title}</h1>
+              <p className="text-lg text-slate-600 font-light">{course.description}</p>
+            </div>
+            <Badge className="bg-purple-100 text-purple-700 px-4 py-2">
+              {course.progress}% Completado
+            </Badge>
+          </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Course Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="text-6xl">{course.image}</div>
-                <div className="flex-1">
-                  <Badge variant="outline" className="mb-2 border-slate-300">
-                    {course.category}
-                  </Badge>
-                  <h1 className="text-3xl md:text-4xl font-black mb-2">{course.title}</h1>
-                  <p className="text-slate-600">{course.description}</p>
-                </div>
-              </div>
+          <Progress value={course.progress} className="h-2" />
+        </motion.div>
 
-              {/* Course Stats */}
-              <div className="flex flex-wrap gap-6 text-sm text-slate-600 mb-4">
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-bold">{course.rating}</span>
-                  <span>({course.reviews} reviews)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>{course.students}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>{course.duration}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  <span>{totalLessons} lecciones</span>
-                </div>
-              </div>
+        <Tabs defaultValue="ia-tutor" className="space-y-8">
+          <TabsList className="bg-white border border-slate-200 p-1 rounded-2xl">
+            <TabsTrigger value="ia-tutor" className="rounded-xl data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+              <Bot className="w-4 h-4 mr-2" />
+              IA Tutor
+            </TabsTrigger>
+            <TabsTrigger value="modulos" className="rounded-xl data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+              <BookOpen className="w-4 h-4 mr-2" />
+              Módulos
+            </TabsTrigger>
+            <TabsTrigger value="laboratorios" className="rounded-xl data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+              <FlaskConical className="w-4 h-4 mr-2" />
+              Laboratorios
+            </TabsTrigger>
+          </TabsList>
 
-              {/* Progress Bar */}
-              <Card className="p-4 border-2 border-purple-200 bg-purple-50">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-bold text-purple-900">Tu progreso</span>
-                  <span className="text-2xl font-black text-purple-600">{course.progress}%</span>
-                </div>
-                <Progress value={course.progress} className="h-3 mb-2" />
-                <p className="text-sm text-purple-700">
-                  {completedLessons} de {totalLessons} lecciones completadas
-                </p>
-              </Card>
-            </motion.div>
-
-            {/* Tabs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Tabs defaultValue="content" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 bg-slate-100">
-                  <TabsTrigger value="content" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-                    Contenido
-                  </TabsTrigger>
-                  <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-                    Resumen
-                  </TabsTrigger>
-                  <TabsTrigger value="resources" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-                    Recursos
-                  </TabsTrigger>
-                  <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-                    Reviews
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="content" className="mt-6">
-                  <Card className="border-2 border-slate-200">
-                    <div className="p-6">
-                      <h3 className="text-xl font-black mb-4">Contenido del Curso</h3>
-                      <Accordion type="single" collapsible className="space-y-4">
-                        {course.modules.map((module: any, index: number) => (
-                          <AccordionItem key={index} value={`module-${index}`} className="border-2 border-slate-200 rounded-lg px-4">
-                            <AccordionTrigger className="hover:no-underline">
-                              <div className="flex items-center justify-between w-full pr-4">
-                                <div className="text-left">
-                                  <p className="font-black">{module.title}</p>
-                                  <p className="text-sm text-slate-600 mt-1">
-                                    {module.lessons} lecciones • {module.duration} • {module.completed}/{module.lessons} completadas
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {module.completed === module.lessons && (
-                                    <Badge className="bg-green-100 text-green-700 border-green-300">
-                                      Completado
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="space-y-2 mt-4">
-                                {module.lessons_detail.map((lesson: any) => (
-                                  <div
-                                    key={lesson.id}
-                                    className={`flex items-center justify-between p-3 rounded-lg border-2 ${
-                                      lesson.completed
-                                        ? "bg-green-50 border-green-200"
-                                        : "bg-slate-50 border-slate-200"
-                                    } hover:border-purple-600 transition-all cursor-pointer`}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      {lesson.completed ? (
-                                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                      ) : lesson.id > 36 ? (
-                                        <Lock className="w-5 h-5 text-slate-400" />
-                                      ) : (
-                                        <Play className="w-5 h-5 text-purple-600" />
-                                      )}
-                                      <div>
-                                        <p className={`font-bold ${lesson.completed ? "text-green-900" : ""}`}>
-                                          {lesson.title}
-                                        </p>
-                                        <div className="flex items-center gap-2 text-xs text-slate-600 mt-1">
-                                          {lesson.type === "video" && <Video className="w-3 h-3" />}
-                                          {lesson.type === "exercise" && <FileText className="w-3 h-3" />}
-                                          {lesson.type === "quiz" && <Award className="w-3 h-3" />}
-                                          {lesson.type === "project" && <BookOpen className="w-3 h-3" />}
-                                          <span>{lesson.duration}</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    {!lesson.completed && lesson.id <= 36 && (
-                                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                                        {lesson.id === 37 ? "Continuar" : "Ver"}
-                                      </Button>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                      </Accordion>
+          {/* Tab IA Tutor */}
+          <TabsContent value="ia-tutor" className="mt-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Chat principal */}
+              <div className="lg:col-span-2">
+                <Card className="rounded-3xl border-0 shadow-lg overflow-hidden">
+                  <div className="bg-gradient-to-r from-purple-600 to-purple-500 p-6 text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                        <Bot className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-medium">Tutor IA</h2>
+                        <p className="text-purple-100 text-sm">Disponible 24/7 para ayudarte</p>
+                      </div>
                     </div>
-                  </Card>
-                </TabsContent>
+                  </div>
 
-                <TabsContent value="overview" className="mt-6">
-                  <Card className="border-2 border-slate-200 p-6">
-                    <h3 className="text-xl font-black mb-4">¿Qué aprenderás?</h3>
-                    <div className="grid md:grid-cols-2 gap-3 mb-6">
-                      {course.whatYouLearn.map((item: string, index: number) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
-                          <p className="text-slate-700">{item}</p>
-                        </div>
+                  <ScrollArea className="h-[500px] p-6">
+                    <div className="space-y-4">
+                      {chatMessages.map((msg, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`max-w-[80%] rounded-2xl p-4 ${
+                            msg.role === 'user' 
+                              ? 'bg-purple-600 text-white' 
+                              : 'bg-slate-100 text-slate-800'
+                          }`}>
+                            <p className="text-sm leading-relaxed">{msg.message}</p>
+                          </div>
+                        </motion.div>
                       ))}
-                    </div>
-
-                    <h3 className="text-xl font-black mb-4 mt-8">Requisitos</h3>
-                    <ul className="space-y-2">
-                      {course.requirements.map((req: string, index: number) => (
-                        <li key={index} className="flex items-start gap-2 text-slate-700">
-                          <ChevronRight className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
-                          {req}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="resources" className="mt-6">
-                  <Card className="border-2 border-slate-200 p-6">
-                    <h3 className="text-xl font-black mb-4">Recursos Descargables</h3>
-                    <div className="space-y-3">
-                      {course.resources.map((resource: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border-2 border-slate-200 hover:border-purple-600 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                              <FileText className="w-5 h-5 text-purple-600" />
-                            </div>
-                            <div>
-                              <p className="font-bold">{resource.name}</p>
-                              <p className="text-sm text-slate-600">{resource.type.toUpperCase()} • {resource.size}</p>
+                      {isTyping && (
+                        <div className="flex justify-start">
+                          <div className="bg-slate-100 rounded-2xl p-4">
+                            <div className="flex gap-2">
+                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100"></div>
+                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200"></div>
                             </div>
                           </div>
-                          <Button variant="outline" size="sm" className="border-2 border-slate-200">
-                            <Download className="w-4 h-4 mr-2" />
-                            Descargar
-                          </Button>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </Card>
-                </TabsContent>
+                  </ScrollArea>
 
-                <TabsContent value="reviews" className="mt-6">
-                  <Card className="border-2 border-slate-200 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-black">Valoraciones</h3>
-                      <div className="flex items-center gap-2">
-                        <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-                        <span className="text-2xl font-black">{course.rating}</span>
-                        <span className="text-slate-600">({course.reviews} reviews)</span>
+                  <div className="p-6 border-t border-slate-100">
+                    <div className="flex gap-3">
+                      <Input
+                        placeholder="Escribe tu pregunta o duda..."
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        className="rounded-full border-slate-200 focus:border-purple-600"
+                      />
+                      <Button
+                        onClick={handleSendMessage}
+                        className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 rounded-full px-6"
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-3 text-center">
+                      La IA está entrenada en todo el contenido del curso
+                    </p>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Módulos rápidos */}
+              <div>
+                <Card className="rounded-3xl border-0 shadow-lg p-6">
+                  <h3 className="text-xl font-medium mb-6">Progreso por Módulo</h3>
+                  <div className="space-y-4">
+                    {course.modules.map((module: any) => (
+                      <div key={module.id} className="p-4 bg-slate-50 rounded-2xl">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-sm">{module.title}</h4>
+                          <Badge className="bg-purple-100 text-purple-700 text-xs">
+                            {module.progress}%
+                          </Badge>
+                        </div>
+                        <Progress value={module.progress} className="h-1.5 mb-3" />
+                        <div className="space-y-1">
+                          {module.topics.slice(0, 3).map((topic: string, idx: number) => (
+                            <p key={idx} className="text-xs text-slate-500">• {topic}</p>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button className="w-full mt-6 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 rounded-full py-6">
+                    Continuar aprendiendo
+                  </Button>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Tab Módulos */}
+          <TabsContent value="modulos" className="mt-8">
+            <div className="grid gap-6">
+              {course.modules.map((module: any, index: number) => (
+                <motion.div
+                  key={module.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="rounded-3xl border-0 shadow-lg p-8 hover:shadow-xl transition-all">
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white ${
+                            module.progress === 100 ? 'bg-green-500' : 
+                            module.progress > 0 ? 'bg-purple-500' : 'bg-slate-300'
+                          }`}>
+                            {module.progress === 100 ? '✓' : index + 1}
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-medium">{module.title}</h3>
+                            <p className="text-sm text-slate-500 mt-1">{module.topics.length} temas • {module.progress}% completado</p>
+                          </div>
+                        </div>
+                        <Progress value={module.progress} className="h-2 mb-4" />
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      {[
-                        { name: "María González", rating: 5, comment: "Excelente curso, muy completo y bien explicado. El instructor es muy claro.", date: "Hace 2 días" },
-                        { name: "Juan Pérez", rating: 5, comment: "Me encantó! Los proyectos prácticos son muy útiles.", date: "Hace 1 semana" },
-                        { name: "Ana Silva", rating: 4, comment: "Muy buen contenido, aunque algunos temas podrían profundizarse más.", date: "Hace 2 semanas" },
-                      ].map((review, index) => (
-                        <div key={index} className="p-4 bg-slate-50 rounded-lg border-2 border-slate-200">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="font-bold">{review.name}</p>
-                              <div className="flex items-center gap-1 mt-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`w-4 h-4 ${
-                                      i < review.rating
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : "text-slate-300"
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <span className="text-xs text-slate-500">{review.date}</span>
-                          </div>
-                          <p className="text-slate-700">{review.comment}</p>
-                          <div className="flex items-center gap-4 mt-3 text-sm">
-                            <button className="flex items-center gap-1 text-slate-600 hover:text-purple-600">
-                              <ThumbsUp className="w-4 h-4" />
-                              Útil (12)
-                            </button>
-                            <button className="flex items-center gap-1 text-slate-600 hover:text-purple-600">
-                              <MessageCircle className="w-4 h-4" />
-                              Responder
-                            </button>
-                          </div>
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      {module.topics.map((topic: string, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                          <span className="text-sm text-slate-700">{topic}</span>
                         </div>
                       ))}
                     </div>
+
+                    <div className="flex gap-3">
+                      <Button className="flex-1 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 rounded-full">
+                        {module.progress === 0 ? 'Comenzar módulo' : module.progress === 100 ? 'Revisar' : 'Continuar'}
+                      </Button>
+                      <Button variant="outline" className="rounded-full px-6">
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Preguntar a IA
+                      </Button>
+                    </div>
                   </Card>
-                </TabsContent>
-              </Tabs>
-            </motion.div>
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          </TabsContent>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Instructor Card */}
+          {/* Tab Laboratorios Virtuales */}
+          <TabsContent value="laboratorios" className="mt-8">
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <Card className="border-2 border-slate-200 p-6">
-                <h3 className="font-black mb-4">Instructor</h3>
-                <div className="text-center">
-                  <div className="text-6xl mb-3">{course.instructor.avatar}</div>
-                  <h4 className="font-black text-lg">{course.instructor.name}</h4>
-                  <p className="text-sm text-slate-600 mb-4">{course.instructor.title}</p>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <p className="text-2xl font-black text-purple-600">{course.instructor.rating}</p>
-                      <p className="text-xs text-slate-600">Rating</p>
-                    </div>
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <p className="text-2xl font-black text-purple-600">{course.instructor.students}</p>
-                      <p className="text-xs text-slate-600">Estudiantes</p>
-                    </div>
+              <Card className="rounded-3xl border-0 shadow-lg p-8 mb-8 bg-gradient-to-br from-purple-50 to-purple-100/50">
+                <div className="flex items-start gap-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shrink-0">
+                    <FlaskConical className="w-8 h-8 text-white" />
                   </div>
-
-                  <Button variant="outline" className="w-full border-2 border-slate-200">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Contactar
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Quick Actions */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="border-2 border-slate-200 p-6">
-                <h3 className="font-black mb-4">Acciones Rápidas</h3>
-                <div className="space-y-3">
-                  <Button className="w-full bg-purple-600 hover:bg-purple-700 font-bold">
-                    <Play className="w-4 h-4 mr-2" />
-                    Continuar Lección
-                  </Button>
-                  <Button variant="outline" className="w-full border-2 border-slate-200">
-                    <Download className="w-4 h-4 mr-2" />
-                    Descargar Recursos
-                  </Button>
-                  <Button variant="outline" className="w-full border-2 border-slate-200">
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Compartir Curso
-                  </Button>
-                  <Button variant="outline" className="w-full border-2 border-slate-200">
-                    <Heart className="w-4 h-4 mr-2" />
-                    Guardar en Favoritos
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Course Info */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card className="border-2 border-slate-200 p-6">
-                <h3 className="font-black mb-4">Información</h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Nivel:</span>
-                    <span className="font-bold">{course.level}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Idioma:</span>
-                    <span className="font-bold">{course.language}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Duración:</span>
-                    <span className="font-bold">{course.duration}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Lecciones:</span>
-                    <span className="font-bold">{totalLessons}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Última actualización:</span>
-                    <span className="font-bold">{course.lastUpdate}</span>
+                  <div>
+                    <h2 className="text-3xl font-light mb-3">Laboratorios Virtuales</h2>
+                    <p className="text-slate-600 leading-relaxed">
+                      Practica tus conocimientos en entornos simulados profesionales. Estos laboratorios te permiten 
+                      experimentar sin riesgos y obtener feedback instantáneo de la IA.
+                    </p>
                   </div>
                 </div>
               </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {course.labs.map((lab: any, index: number) => (
+                  <motion.div
+                    key={lab.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className="rounded-3xl border-0 shadow-lg p-8 hover:shadow-xl transition-all group">
+                      <div className="flex items-start gap-6 mb-6">
+                        <div className="text-6xl">{lab.icon}</div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="text-2xl font-medium group-hover:text-purple-600 transition-colors">
+                              {lab.name}
+                            </h3>
+                            <Badge className="bg-green-100 text-green-700">
+                              {lab.status === 'available' ? 'Disponible' : 'Próximamente'}
+                            </Badge>
+                          </div>
+                          <Badge className="bg-purple-100 text-purple-700 mb-3">
+                            {lab.category}
+                          </Badge>
+                          <p className="text-slate-600 leading-relaxed">
+                            {lab.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <Button 
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 rounded-full"
+                          onClick={() => window.open(lab.url, '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Abrir Laboratorio
+                        </Button>
+                        <Button variant="outline" className="rounded-full px-6">
+                          <Bot className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="mt-6 pt-6 border-t border-slate-100 space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Zap className="w-4 h-4 text-purple-600" />
+                          <span>Feedback en tiempo real</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <CircuitBoard className="w-4 h-4 text-purple-600" />
+                          <span>Simulación realista</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Monitor className="w-4 h-4 text-purple-600" />
+                          <span>Integrado con el curso</span>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
