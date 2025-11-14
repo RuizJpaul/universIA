@@ -1,17 +1,49 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Menu, X, User, LogOut } from "lucide-react"
-import { useAuth } from "@/contexts/AuthContext"
 
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
-  const { isAuthenticated, user, logout } = useAuth()
+  const { data: session, status } = useSession()
+  const [userExistsInDB, setUserExistsInDB] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
+  
+  // Verificar si el usuario existe en la DB cuando hay sesión
+  useEffect(() => {
+    const checkUserInDB = async () => {
+      if (status === "authenticated" && session?.user?.email && !isChecking) {
+        setIsChecking(true)
+        try {
+          const response = await fetch("/api/auth/check-onboarding")
+          if (response.ok) {
+            setUserExistsInDB(true)
+          } else {
+            // Usuario no existe en DB - cerrar sesión
+            setUserExistsInDB(false)
+            await signOut({ redirect: false })
+          }
+        } catch (error) {
+          console.error("Error verificando usuario:", error)
+          setUserExistsInDB(false)
+        } finally {
+          setIsChecking(false)
+        }
+      } else if (status !== "authenticated") {
+        setUserExistsInDB(false)
+      }
+    }
+    
+    checkUserInDB()
+  }, [status, session?.user?.email])
+  
+  const isAuthenticated = status === "authenticated" && userExistsInDB
 
   const links = [
     { href: "/", label: "Inicio" },
@@ -50,11 +82,11 @@ export const Navbar = () => {
               <Link href="/estudiante/dashboard">
                 <Button className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 rounded-none flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  {user?.name}
+                  {session?.user?.name || session?.user?.email}
                 </Button>
               </Link>
               <Button
-                onClick={logout}
+                onClick={() => signOut({ callbackUrl: "/" })}
                 variant="outline"
                 className="border-2 border-slate-900 font-bold px-6 rounded-none"
               >
@@ -64,12 +96,12 @@ export const Navbar = () => {
             </>
           ) : (
             <>
-              <Link href="/login">
+              <Link href="/auth/login">
                 <Button variant="outline" className="border-2 border-slate-900 font-bold px-6 rounded-none">
                   INICIAR SESIÓN
                 </Button>
               </Link>
-              <Link href="/login">
+              <Link href="/auth/register">
                 <Button className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 rounded-none">
                   ÚNETE A UNIVERSIA
                 </Button>
@@ -113,7 +145,7 @@ export const Navbar = () => {
                   </Link>
                   <Button
                     onClick={() => {
-                      logout()
+                      signOut({ callbackUrl: "/" })
                       setMobileMenuOpen(false)
                     }}
                     variant="outline"
@@ -124,12 +156,12 @@ export const Navbar = () => {
                 </>
               ) : (
                 <>
-                  <Link href="/login">
+                  <Link href="/auth/login">
                     <Button variant="outline" className="w-full border-2 border-slate-900 font-bold rounded-none">
                       INICIAR SESIÓN
                     </Button>
                   </Link>
-                  <Link href="/login">
+                  <Link href="/auth/register">
                     <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-none">
                       ÚNETE A UNIVERSIA
                     </Button>

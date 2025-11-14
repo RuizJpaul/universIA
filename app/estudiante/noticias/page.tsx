@@ -1,20 +1,15 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import StudentNavbar from "@/components/student-navbar"
 import {
-  BookOpen,
-  Bell,
-  LogOut,
-  Home,
-  TrendingUp,
-  Newspaper,
   Calendar,
   Users,
   Award,
@@ -24,169 +19,123 @@ import {
   GraduationCap,
   Clock,
   ArrowRight,
-  User,
+  Newspaper,
 } from "lucide-react"
 
 export default function NoticiasEventos() {
-  const { user, isAuthenticated, logout } = useAuth()
+  const { data: session, status } = useSession()
   const router = useRouter()
+  const [noticiasData, setNoticiasData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login")
+    if (status === "unauthenticated") {
+      router.push("/auth/login")
     }
-  }, [isAuthenticated, router])
+  }, [status, router])
 
-  if (!isAuthenticated || !user) {
-    return null
+  // Fetch noticias y eventos
+  useEffect(() => {
+    if (status === "authenticated") {
+      async function fetchNoticias() {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/estudiante/noticias')
+          
+          if (!res.ok) {
+            throw new Error('Error al cargar noticias')
+          }
+          
+          const data = await res.json()
+          
+          if (data.success) {
+            setNoticiasData(data)
+          } else {
+            throw new Error(data.error || 'Error desconocido')
+          }
+        } catch (err: any) {
+          console.error('Error fetching noticias:', err)
+          setError(err.message)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      fetchNoticias()
+    }
+  }, [status])
+
+  if (status === "loading" || loading || !session) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+    </div>
   }
 
-  const noticias = [
-    {
-      id: 1,
-      titulo: "Nueva funcionalidad: Laboratorios Virtuales de Electrónica",
-      categoria: "Tecnología",
-      fecha: "Hace 2 horas",
-      imagen: "⚡",
-      extracto: "Ahora puedes simular circuitos electrónicos directamente desde la plataforma con integración de Tinkercad y Wokwi.",
-      tipo: "novedad",
-      color: "purple",
-    },
-    {
-      id: 2,
-      titulo: "Webinar: Inteligencia Artificial en la Educación del Futuro",
-      categoria: "Evento",
-      fecha: "15 de Noviembre, 2025",
-      imagen: "🎯",
-      extracto: "Únete a expertos internacionales en una discusión sobre cómo la IA está transformando la educación superior.",
-      tipo: "evento",
-      color: "blue",
-      hora: "18:00 hrs",
-    },
-    {
-      id: 3,
-      titulo: "Actualización del Sistema de IA Tutora",
-      categoria: "Actualización",
-      fecha: "Hace 1 día",
-      imagen: "🤖",
-      extracto: "Nuestra IA tutora ahora puede proporcionar retroalimentación más personalizada basada en tu ritmo de aprendizaje.",
-      tipo: "actualizacion",
-      color: "green",
-    },
-    {
-      id: 4,
-      titulo: "Concurso de Innovación Tecnológica 2025",
-      categoria: "Competencia",
-      fecha: "Inscripciones abiertas",
-      imagen: "🏆",
-      extracto: "Presenta tu proyecto innovador y gana becas completas. Fecha límite: 30 de Noviembre.",
-      tipo: "competencia",
-      color: "orange",
-    },
-    {
-      id: 5,
-      titulo: "Nuevos Cursos de Certificación Profesional",
-      categoria: "Cursos",
-      fecha: "Hace 3 días",
-      imagen: "📚",
-      extracto: "Amplía tu oferta académica con 15 nuevos cursos certificados en Data Science, Cloud Computing y Ciberseguridad.",
-      tipo: "novedad",
-      color: "indigo",
-    },
-    {
-      id: 6,
-      titulo: "Hackathon Virtual: Soluciones para la Educación",
-      categoria: "Evento",
-      fecha: "20-22 de Noviembre, 2025",
-      imagen: "💡",
-      extracto: "72 horas de desarrollo colaborativo para crear herramientas educativas innovadoras.",
-      tipo: "evento",
-      color: "pink",
-    },
-  ]
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-8 max-w-md">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
+          <p className="text-slate-600">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Reintentar
+          </Button>
+        </Card>
+      </div>
+    )
+  }
 
-  const proximosEventos = [
-    {
-      id: 1,
-      titulo: "Sesión Q&A con Dr. Carlos Ruiz",
-      fecha: "14 Nov",
-      hora: "16:00",
-      tipo: "Virtual",
-    },
-    {
-      id: 2,
-      titulo: "Workshop: Machine Learning Básico",
-      fecha: "16 Nov",
-      hora: "10:00",
-      tipo: "Presencial",
-    },
-    {
-      id: 3,
-      titulo: "Networking Tech Students",
-      fecha: "18 Nov",
-      hora: "19:00",
-      tipo: "Híbrido",
-    },
-  ]
+  const noticias = noticiasData?.noticias || []
+  const proximosEventos = noticiasData?.eventos || []
+
+  // Función para formatear fecha
+  const formatFecha = (fecha: string) => {
+    const date = new Date(fecha)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    
+    if (days === 0) return 'Hoy'
+    if (days === 1) return 'Ayer'
+    if (days < 7) return `Hace ${days} días`
+    
+    return date.toLocaleDateString('es-PE', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    })
+  }
+
+  // Mapeo de categorías a colores
+  const getCategoriaColor = (categoria: string) => {
+    const colores: any = {
+      'Tecnología': 'purple',
+      'Evento': 'blue',
+      'Actualización': 'green',
+      'Competencia': 'orange',
+      'Cursos': 'indigo',
+      'Comunidad': 'pink',
+    }
+    return colores[categoria] || 'gray'
+  }
+
+  // Mapeo de categorías a iconos
+  const getCategoriaIcon = (categoria: string) => {
+    const iconos: any = {
+      'Tecnología': '⚡',
+      'Evento': '🎯',
+      'Actualización': '🤖',
+      'Competencia': '🏆',
+      'Cursos': '📚',
+      'Comunidad': '💡',
+    }
+    return iconos[categoria] || '📰'
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Navbar */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-8 py-6">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-light tracking-wide hover:opacity-80 transition">
-              UNIVERSIA
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/estudiante/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
-                <Home className="w-4 h-4" />
-                Dashboard
-              </Link>
-              <Link href="/estudiante/mis-cursos" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
-                <BookOpen className="w-4 h-4" />
-                Mis Cursos
-              </Link>
-              <Link href="/estudiante/noticias" className="flex items-center gap-2 text-purple-600 font-medium hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
-                <Newspaper className="w-4 h-4" />
-                Noticias
-              </Link>
-              <Link href="/estudiante/progreso" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
-                <TrendingUp className="w-4 h-4" />
-                Progreso
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-purple-50">
-                <Bell className="w-5 h-5" />
-              </Button>
-              
-              <Link href="/estudiante/perfil">
-                <div className="flex items-center gap-3 hover:bg-slate-50 px-4 py-2 rounded-full transition-all cursor-pointer">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
-                    {user.name.charAt(0)}
-                  </div>
-                  <div className="text-left hidden lg:block">
-                    <p className="font-medium text-sm">{user.name}</p>
-                    <p className="text-xs text-slate-400">Ver perfil</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Button
-                onClick={logout}
-                variant="ghost"
-                size="icon"
-                className="rounded-full hover:bg-red-50 hover:text-red-600"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StudentNavbar />
 
       <div className="max-w-7xl mx-auto px-8 py-20">
         {/* Header */}
@@ -209,43 +158,59 @@ export default function NoticiasEventos() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Columna principal - Noticias */}
           <div className="lg:col-span-2 space-y-8">
-            {noticias.map((noticia, index) => (
-              <motion.div
-                key={noticia.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="p-8 rounded-3xl border-0 shadow-lg hover:shadow-xl transition-all duration-500 group">
-                  <div className="flex gap-6">
-                    <div className={`w-20 h-20 bg-gradient-to-br from-${noticia.color}-400 to-${noticia.color}-600 rounded-2xl flex items-center justify-center text-4xl shrink-0 group-hover:scale-110 transition-transform duration-500`}>
-                      {noticia.imagen}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Badge className={`bg-${noticia.color}-100 text-${noticia.color}-700 hover:bg-${noticia.color}-200`}>
-                          {noticia.categoria}
-                        </Badge>
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                          <Clock className="w-4 h-4" />
-                          {noticia.fecha}
+            {noticias && noticias.length > 0 ? (
+              noticias.map((noticia: any, index: number) => {
+                const color = getCategoriaColor(noticia.categoria)
+                const icon = getCategoriaIcon(noticia.categoria)
+                
+                return (
+                  <motion.div
+                    key={noticia.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className="p-8 rounded-3xl border-0 shadow-lg hover:shadow-xl transition-all duration-500 group">
+                      <div className="flex gap-6">
+                        <div className={`w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl flex items-center justify-center text-4xl shrink-0 group-hover:scale-110 transition-transform duration-500`}>
+                          {icon}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Badge className={`bg-purple-100 text-purple-700 hover:bg-purple-200`}>
+                              {noticia.categoria || 'General'}
+                            </Badge>
+                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                              <Clock className="w-4 h-4" />
+                              {formatFecha(noticia.fecha_publicacion)}
+                            </div>
+                          </div>
+                          <h3 className="text-2xl font-medium mb-3 group-hover:text-purple-600 transition-colors">
+                            {noticia.titulo}
+                          </h3>
+                          <p className="text-slate-600 mb-4 leading-relaxed">
+                            {noticia.subtitulo || noticia.contenido?.substring(0, 150) + '...'}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-slate-400">
+                            <div className="flex items-center gap-1">
+                              👁️ {noticia.visitas || 0} vistas
+                            </div>
+                            <div className="flex items-center gap-1">
+                              ❤️ {noticia.likes_count || 0} me gusta
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <h3 className="text-2xl font-medium mb-3 group-hover:text-purple-600 transition-colors">
-                        {noticia.titulo}
-                      </h3>
-                      <p className="text-slate-600 mb-4 leading-relaxed">
-                        {noticia.extracto}
-                      </p>
-                      <Button variant="ghost" className="text-purple-600 hover:bg-purple-50 rounded-full px-6 group-hover:gap-3 transition-all">
-                        Leer más
-                        <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
+                    </Card>
+                  </motion.div>
+                )
+              })
+            ) : (
+              <Card className="p-12 text-center">
+                <Newspaper className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+                <p className="text-slate-500">No hay noticias disponibles</p>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar - Próximos eventos */}
@@ -262,29 +227,40 @@ export default function NoticiasEventos() {
                 </div>
 
                 <div className="space-y-6">
-                  {proximosEventos.map((evento, index) => (
-                    <div
-                      key={evento.id}
-                      className="flex gap-4 p-4 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-100 hover:shadow-md transition-all"
-                    >
-                      <div className="text-center">
-                        <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex flex-col items-center justify-center text-white">
-                          <span className="text-xs font-medium">{evento.fecha.split(' ')[1]}</span>
-                          <span className="text-xl font-bold">{evento.fecha.split(' ')[0]}</span>
+                  {proximosEventos && proximosEventos.length > 0 ? (
+                    proximosEventos.map((evento: any, index: number) => {
+                      const fecha = new Date(evento.fecha_inicio)
+                      const dia = fecha.getDate()
+                      const mes = fecha.toLocaleDateString('es-PE', { month: 'short' })
+                      const hora = fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+                      
+                      return (
+                        <div
+                          key={evento.id}
+                          className="flex gap-4 p-4 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-100 hover:shadow-md transition-all"
+                        >
+                          <div className="text-center">
+                            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex flex-col items-center justify-center text-white">
+                              <span className="text-xs font-medium">{mes}</span>
+                              <span className="text-xl font-bold">{dia}</span>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium mb-2 text-sm">{evento.titulo}</h4>
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <Clock className="w-3 h-3" />
+                              {hora}
+                            </div>
+                            <Badge className="mt-2 text-xs bg-purple-100 text-purple-700">
+                              {evento.modalidad || evento.tipo}
+                            </Badge>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium mb-2 text-sm">{evento.titulo}</h4>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <Clock className="w-3 h-3" />
-                          {evento.hora}
-                        </div>
-                        <Badge className="mt-2 text-xs bg-purple-100 text-purple-700">
-                          {evento.tipo}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                      )
+                    })
+                  ) : (
+                    <p className="text-sm text-slate-500 text-center py-4">No hay eventos próximos</p>
+                  )}
                 </div>
 
                 <Button className="w-full mt-8 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 rounded-full py-6 font-medium shadow-lg shadow-purple-200">

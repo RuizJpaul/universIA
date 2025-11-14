@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,177 +19,110 @@ import {
   Star,
   Play,
   Download,
-  Bell,
-  User,
-  LogOut,
-  Home,
-  TrendingUp,
   Calendar,
+  TrendingUp,
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import StudentNavbar from "@/components/student-navbar"
 
 export default function MisCursos() {
-  const { isAuthenticated, user, logout } = useAuth()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "completed">("all")
   const [searchQuery, setSearchQuery] = useState("")
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login")
-    }
-  }, [isAuthenticated, router])
+  // Estados para API data
+  const [courses, setCourses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!isAuthenticated || !user) {
-    return null
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/login")
+    }
+  }, [status, router])
+
+  // Fetch courses from API
+  useEffect(() => {
+    if (status === "authenticated") {
+      async function fetchCourses() {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/estudiante/cursos')
+          
+          if (!res.ok) {
+            throw new Error('Error al cargar cursos')
+          }
+          
+          const data = await res.json()
+          
+          if (data.success) {
+            setCourses(data.courses || [])
+          } else {
+            throw new Error(data.error || 'Error desconocido')
+          }
+        } catch (err: any) {
+          console.error('Error fetching courses:', err)
+          setError(err.message)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      fetchCourses()
+    }
+  }, [status])
+
+  if (status === "loading" || loading || !session) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+    </div>
   }
 
-  const allCourses = [
-    {
-      id: "1",
-      title: "Desarrollo Web Full Stack",
-      instructor: "Dr. Carlos Ruiz",
-      category: "Tecnología",
-      progress: 75,
-      image: "💻",
-      status: "active",
-      totalLessons: 48,
-      completedLessons: 36,
-      duration: "12 semanas",
-      nextLesson: "React Hooks Avanzados",
-      rating: 4.8,
-      enrolled: "3,245 estudiantes",
-    },
-    {
-      id: "2",
-      title: "Machine Learning con Python",
-      instructor: "Dra. Ana Martínez",
-      category: "Data Science",
-      progress: 45,
-      image: "🤖",
-      status: "active",
-      totalLessons: 60,
-      completedLessons: 27,
-      duration: "16 semanas",
-      nextLesson: "Redes Neuronales Básicas",
-      rating: 4.9,
-      enrolled: "2,890 estudiantes",
-    },
-    {
-      id: "3",
-      title: "Diseño UX/UI Profesional",
-      instructor: "Prof. Luis Gómez",
-      category: "Diseño",
-      progress: 20,
-      image: "🎨",
-      status: "active",
-      totalLessons: 36,
-      completedLessons: 7,
-      duration: "10 semanas",
-      nextLesson: "Principios de Diseño Visual",
-      rating: 4.7,
-      enrolled: "4,120 estudiantes",
-    },
-    {
-      id: "4",
-      title: "Marketing Digital Avanzado",
-      instructor: "Mtra. Sofia Torres",
-      category: "Marketing",
-      progress: 100,
-      image: "📱",
-      status: "completed",
-      totalLessons: 40,
-      completedLessons: 40,
-      duration: "8 semanas",
-      nextLesson: "Curso Completado",
-      rating: 5.0,
-      enrolled: "5,670 estudiantes",
-    },
-    {
-      id: "5",
-      title: "Excel para Análisis de Datos",
-      instructor: "Ing. Roberto Silva",
-      category: "Negocios",
-      progress: 100,
-      image: "📊",
-      status: "completed",
-      totalLessons: 32,
-      completedLessons: 32,
-      duration: "6 semanas",
-      nextLesson: "Curso Completado",
-      rating: 4.6,
-      enrolled: "6,890 estudiantes",
-    },
-  ]
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-8 max-w-md">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
+          <p className="text-slate-600">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Reintentar
+          </Button>
+        </Card>
+      </div>
+    )
+  }
 
-  const filteredCourses = allCourses.filter((course) => {
-    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter courses
+  const filteredCourses = courses.filter((course) => {
+    if (!course || !course.titulo) return false
     
-    const matchesFilter = 
-      filterStatus === "all" ||
-      (filterStatus === "active" && course.status === "active") ||
-      (filterStatus === "completed" && course.status === "completed")
-
-    return matchesSearch && matchesFilter
+    const matchesSearch = course.titulo.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    if (filterStatus === "all") return matchesSearch
+    if (filterStatus === "active") return matchesSearch && course.estado !== "COMPLETADO"
+    if (filterStatus === "completed") return matchesSearch && course.estado === "COMPLETADO"
+    
+    return matchesSearch
   })
 
+  const activeCourses = courses.filter((c) => c && c.estado !== "COMPLETADO").length
+  const completedCourses = courses.filter((c) => c && c.estado === "COMPLETADO").length
+
   const stats = {
-    active: allCourses.filter(c => c.status === "active").length,
-    completed: allCourses.filter(c => c.status === "completed").length,
-    totalHours: 124,
-    avgProgress: Math.round(allCourses.reduce((acc, c) => acc + c.progress, 0) / allCourses.length),
+    active: activeCourses,
+    completed: completedCourses,
+    totalHours: courses.reduce((acc, c) => acc + (c?.duracion || 0), 0),
+    avgProgress: courses.length > 0 
+      ? Math.round(courses.reduce((acc, c) => acc + (c?.progreso_general || 0), 0) / courses.length)
+      : 0,
   }
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar del Estudiante */}
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-black">
-              UNIVERSIA
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/estudiante/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition">
-                <Home className="w-4 h-4" />
-                Dashboard
-              </Link>
-              <Link href="/estudiante/mis-cursos" className="flex items-center gap-2 text-purple-600 font-bold">
-                <BookOpen className="w-4 h-4" />
-                Mis Cursos
-              </Link>
-              <Link href="/estudiante/progreso" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition">
-                <TrendingUp className="w-4 h-4" />
-                Progreso
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
-                <Bell className="w-5 h-5" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <p className="font-bold text-sm">{user.name}</p>
-                  <p className="text-xs text-slate-500">Estudiante</p>
-                </div>
-                <Button
-                  onClick={logout}
-                  variant="outline"
-                  size="icon"
-                  className="border-slate-200"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StudentNavbar />
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
@@ -344,150 +277,146 @@ export default function MisCursos() {
 
         {/* Courses Grid/List */}
         <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-          {filteredCourses.map((course, index) => (
-            <motion.div
-              key={course.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * index }}
-            >
-              {viewMode === "grid" ? (
-                <Card className="overflow-hidden border-2 border-slate-200 hover:border-purple-600 hover:shadow-xl transition-all group">
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="text-5xl">{course.image}</div>
-                      <Badge className={course.status === "completed" ? "bg-green-100 text-green-700 border-green-300" : "bg-purple-100 text-purple-700 border-purple-300"}>
-                        {course.status === "completed" ? "Completado" : "En Progreso"}
+          {filteredCourses.length === 0 ? (
+            <div className="col-span-3 text-center py-12">
+              <BookOpen className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+              <p className="text-slate-500">No se encontraron cursos</p>
+            </div>
+          ) : (
+            filteredCourses.map((course: any, index: number) => (
+              <motion.div
+                key={course.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * index }}
+              >
+                {viewMode === "grid" ? (
+                  <Card className="overflow-hidden border-2 border-slate-200 hover:border-purple-600 hover:shadow-xl transition-all group">
+                    <div className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="text-5xl">
+                          {course.nivel === 'BASICO' && '📚'}
+                          {course.nivel === 'INTERMEDIO' && '💻'}
+                          {course.nivel === 'AVANZADO' && '🚀'}
+                          {!course.nivel && '📖'}
+                        </div>
+                        <Badge className={course.estado === "COMPLETADO" ? "bg-green-100 text-green-700 border-green-300" : "bg-purple-100 text-purple-700 border-purple-300"}>
+                          {course.estado === "COMPLETADO" ? "Completado" : "En Progreso"}
+                        </Badge>
+                      </div>
+
+                      <Badge variant="outline" className="mb-3 border-slate-300">
+                        {course.nivel || 'Curso'}
                       </Badge>
-                    </div>
 
-                    <Badge variant="outline" className="mb-3 border-slate-300">
-                      {course.category}
-                    </Badge>
+                      <h3 className="font-black text-lg mb-2 line-clamp-2 group-hover:text-purple-600 transition">
+                        {course.titulo}
+                      </h3>
 
-                    <h3 className="font-black text-lg mb-2 line-clamp-2 group-hover:text-purple-600 transition">
-                      {course.title}
-                    </h3>
+                      <p className="text-sm text-slate-600 mb-4">{course.descripcion?.substring(0, 100)}...</p>
 
-                    <p className="text-sm text-slate-600 mb-4">👨‍🏫 {course.instructor}</p>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Progreso</span>
-                        <span className="font-bold text-purple-600">{course.progress}%</span>
-                      </div>
-                      <Progress value={course.progress} className="h-2" />
-                      <p className="text-xs text-slate-500">
-                        {course.completedLessons} de {course.totalLessons} lecciones
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="font-bold">{course.rating}</span>
-                      <span>•</span>
-                      <span>{course.enrolled}</span>
-                    </div>
-
-                    {course.status === "active" && (
-                      <div className="bg-purple-50 p-3 rounded-lg mb-4">
-                        <p className="text-xs text-purple-600 font-bold mb-1">Siguiente lección:</p>
-                        <p className="text-sm font-bold">{course.nextLesson}</p>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      <Link href={`/estudiante/curso/${course.id}`} className="flex-1">
-                        <Button className="w-full bg-purple-600 hover:bg-purple-700 font-bold">
-                          <Play className="w-4 h-4 mr-2" />
-                          {course.status === "completed" ? "Revisar" : "Continuar"}
-                        </Button>
-                      </Link>
-                      {course.status === "completed" && (
-                        <Button variant="outline" size="icon" className="border-2 border-slate-200">
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ) : (
-                <Card className="border-2 border-slate-200 hover:border-purple-600 hover:shadow-lg transition-all">
-                  <div className="p-6 flex flex-col md:flex-row gap-6 items-start">
-                    <div className="text-6xl">{course.image}</div>
-                    
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <Badge variant="outline" className="border-slate-300">
-                              {course.category}
-                            </Badge>
-                            <Badge className={course.status === "completed" ? "bg-green-100 text-green-700 border-green-300" : "bg-purple-100 text-purple-700 border-purple-300"}>
-                              {course.status === "completed" ? "Completado" : "En Progreso"}
-                            </Badge>
-                          </div>
-                          <h3 className="font-black text-xl mb-1 hover:text-purple-600 transition">
-                            {course.title}
-                          </h3>
-                          <p className="text-sm text-slate-600">👨‍🏫 {course.instructor}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span>{course.duration}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="w-4 h-4" />
-                          <span>{course.totalLessons} lecciones</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-bold">{course.rating}</span>
-                        </div>
-                        <span>{course.enrolled}</span>
-                      </div>
-
-                      <div className="space-y-2">
+                      <div className="space-y-2 mb-4">
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Progreso del curso</span>
-                          <span className="font-bold text-purple-600">{course.progress}%</span>
+                          <span className="text-slate-600">Progreso</span>
+                          <span className="font-bold text-purple-600">{Math.round(course.progreso_general || 0)}%</span>
                         </div>
-                        <Progress value={course.progress} className="h-2" />
+                        <Progress value={course.progreso_general || 0} className="h-2" />
+                        <p className="text-xs text-slate-500">
+                          {course.lecciones_completadas || 0} de {course.total_lecciones || 0} lecciones
+                        </p>
                       </div>
 
-                      {course.status === "active" && (
-                        <div className="bg-purple-50 p-3 rounded-lg">
-                          <p className="text-xs text-purple-600 font-bold mb-1">Siguiente lección:</p>
-                          <p className="text-sm font-bold">{course.nextLesson}</p>
-                        </div>
-                      )}
-                    </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
+                        <Clock className="w-4 h-4" />
+                        <span>{course.duracion || 0} horas</span>
+                      </div>
 
-                    <div className="flex flex-col gap-2">
-                      <Link href={`/estudiante/curso/${course.id}`}>
-                        <Button className="bg-purple-600 hover:bg-purple-700 font-bold w-full md:w-auto">
-                          <Play className="w-4 h-4 mr-2" />
-                          {course.status === "completed" ? "Revisar" : "Continuar"}
-                        </Button>
-                      </Link>
-                      {course.status === "completed" && (
-                        <Button variant="outline" className="border-2 border-slate-200">
-                          <Download className="w-4 h-4 mr-2" />
-                          Certificado
-                        </Button>
-                      )}
+                      <div className="flex gap-2">
+                        <Link href={`/estudiante/curso/${course.id}`} className="flex-1">
+                          <Button className="w-full bg-purple-600 hover:bg-purple-700 font-bold">
+                            <Play className="w-4 h-4 mr-2" />
+                            {course.estado === "COMPLETADO" ? "Revisar" : "Continuar"}
+                          </Button>
+                        </Link>
+                        {course.estado === "COMPLETADO" && (
+                          <Button variant="outline" size="icon" className="border-2 border-slate-200">
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              )}
-            </motion.div>
-          ))}
+                  </Card>
+                ) : (
+                  <Card className="border-2 border-slate-200 hover:border-purple-600 hover:shadow-lg transition-all">
+                    <div className="p-6 flex flex-col md:flex-row gap-6 items-start">
+                      <div className="text-6xl">
+                        {course.nivel === 'BASICO' && '📚'}
+                        {course.nivel === 'INTERMEDIO' && '💻'}
+                        {course.nivel === 'AVANZADO' && '🚀'}
+                        {!course.nivel && '📖'}
+                      </div>
+                      
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <Badge variant="outline" className="border-slate-300">
+                                {course.nivel || 'Curso'}
+                              </Badge>
+                              <Badge className={course.estado === "COMPLETADO" ? "bg-green-100 text-green-700 border-green-300" : "bg-purple-100 text-purple-700 border-purple-300"}>
+                                {course.estado === "COMPLETADO" ? "Completado" : "En Progreso"}
+                              </Badge>
+                            </div>
+                            <h3 className="font-black text-xl mb-1 hover:text-purple-600 transition">
+                              {course.titulo}
+                            </h3>
+                            <p className="text-sm text-slate-600">{course.descripcion?.substring(0, 150)}...</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>{course.duracion || 0} horas</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="w-4 h-4" />
+                            <span>{course.total_lecciones || 0} lecciones</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-600">Progreso del curso</span>
+                            <span className="font-bold text-purple-600">{Math.round(course.progreso_general || 0)}%</span>
+                          </div>
+                          <Progress value={course.progreso_general || 0} className="h-2" />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <Link href={`/estudiante/curso/${course.id}`}>
+                          <Button className="bg-purple-600 hover:bg-purple-700 font-bold w-full md:w-auto">
+                            <Play className="w-4 h-4 mr-2" />
+                            {course.estado === "COMPLETADO" ? "Revisar" : "Continuar"}
+                          </Button>
+                        </Link>
+                        {course.estado === "COMPLETADO" && (
+                          <Button variant="outline" className="border-2 border-slate-200">
+                            <Download className="w-4 h-4 mr-2" />
+                            Certificado
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </motion.div>
+            ))
+          )}
         </div>
 
-        {filteredCourses.length === 0 && (
+        {filteredCourses.length === 0 && courses.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

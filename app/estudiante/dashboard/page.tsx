@@ -1,135 +1,102 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import StudentNavbar from "@/components/student-navbar"
 import {
   BookOpen,
   Clock,
   Award,
   Flame,
   Calendar,
-  Bell,
-  LogOut,
-  Home,
   FileText,
   Video,
-  TrendingUp,
   Settings,
   User,
-  Newspaper,
   FlaskConical,
+  Search,
 } from "lucide-react"
 
 export default function StudentDashboard() {
-  const { user, isAuthenticated, logout } = useAuth()
+  const { data: session, status } = useSession()
   const router = useRouter()
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login")
-    }
-  }, [isAuthenticated, router])
+  // Estados para datos de la API
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!isAuthenticated || !user) {
-    return null
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/login")
+    }
+  }, [status, router])
+
+  // Fetch dashboard data from API
+  useEffect(() => {
+    if (status === "authenticated") {
+      async function fetchDashboard() {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/estudiante/dashboard')
+          
+          if (!res.ok) {
+            throw new Error('Error al cargar datos del dashboard')
+          }
+          
+          const data = await res.json()
+          
+          if (data.success) {
+            setDashboardData(data)
+          } else {
+            throw new Error(data.error || 'Error desconocido')
+          }
+        } catch (err: any) {
+          console.error('Error fetching dashboard:', err)
+          setError(err.message)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      fetchDashboard()
+    }
+  }, [status])
+
+  if (status === "loading" || loading || !session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    )
   }
 
-  const courses = [
-    {
-      id: "1",
-      title: "Desarrollo Web Full Stack",
-      instructor: "Dr. Carlos Ruiz",
-      category: "Tecnología",
-      progress: 75,
-      image: "💻",
-      nextLesson: "React Hooks Avanzados",
-    },
-    {
-      id: "2",
-      title: "Machine Learning con Python",
-      instructor: "Dra. Ana Martínez",
-      category: "Data Science",
-      progress: 45,
-      image: "🤖",
-      nextLesson: "Redes Neuronales Básicas",
-    },
-    {
-      id: "3",
-      title: "Diseño UX/UI Profesional",
-      instructor: "Prof. Luis Gómez",
-      category: "Diseño",
-      progress: 20,
-      image: "🎨",
-      nextLesson: "Principios de Diseño Visual",
-    },
-  ]
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-8 max-w-md">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
+          <p className="text-slate-600">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Reintentar
+          </Button>
+        </Card>
+      </div>
+    )
+  }
+
+  const { stats, courses, upcomingEvaluations, recentActivity, weeklyProgress } = dashboardData || {}
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Navbar - Fluid Style */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-8 py-6">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-light tracking-wide hover:opacity-80 transition">
-              UNIVERSIA
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/estudiante/dashboard" className="flex items-center gap-2 text-purple-600 font-medium hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
-                <Home className="w-4 h-4" />
-                Dashboard
-              </Link>
-              <Link href="/estudiante/mis-cursos" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
-                <BookOpen className="w-4 h-4" />
-                Mis Cursos
-              </Link>
-              <Link href="/estudiante/noticias" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
-                <Newspaper className="w-4 h-4" />
-                Noticias
-              </Link>
-              <Link href="/estudiante/progreso" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full transition-colors">
-                <TrendingUp className="w-4 h-4" />
-                Progreso
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-purple-50">
-                <Bell className="w-5 h-5" />
-              </Button>
-              
-              {/* Perfil de usuario mejorado */}
-              <Link href="/estudiante/perfil">
-                <div className="flex items-center gap-3 hover:bg-slate-50 px-4 py-2 rounded-full transition-all cursor-pointer">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
-                    {user.name.charAt(0)}
-                  </div>
-                  <div className="text-left hidden lg:block">
-                    <p className="font-medium text-sm">{user.name}</p>
-                    <p className="text-xs text-slate-400">Ver perfil</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Button
-                onClick={logout}
-                variant="ghost"
-                size="icon"
-                className="rounded-full hover:bg-red-50 hover:text-red-600"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StudentNavbar />
 
       {/* Hero Section - Imagen de Biblioteca */}
       <div className="relative h-[60vh] min-h-[500px] max-h-[700px] flex items-end overflow-hidden">
@@ -153,7 +120,7 @@ export default function StudentDashboard() {
             transition={{ delay: 0.3 }}
           >
             {/* <h1 className="text-5xl md:text-7xl font-light mb-6 tracking-tight text-slate-900">
-              Hola, <span className="font-medium">{user.name}</span> 👋
+              Hola, <span className="font-medium">{session?.user?.name || session?.user?.email}</span> 👋
             </h1> */}
             <p className="text-2xl font-light max-w-2xl">
               Continúa tu aprendizaje donde lo dejaste
@@ -177,7 +144,7 @@ export default function StudentDashboard() {
                   <BookOpen className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-4xl font-light mb-1">3</p>
+                  <p className="text-4xl font-light mb-1">{stats?.activeCourses || 0}</p>
                   <p className="text-sm text-slate-500 font-light">Cursos Activos</p>
                 </div>
               </div>
@@ -195,7 +162,7 @@ export default function StudentDashboard() {
                   <Clock className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-4xl font-light mb-1">124</p>
+                  <p className="text-4xl font-light mb-1">{stats?.totalHours || 0}</p>
                   <p className="text-sm text-slate-500 font-light">Horas Aprendidas</p>
                 </div>
               </div>
@@ -213,7 +180,7 @@ export default function StudentDashboard() {
                   <Award className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-4xl font-light mb-1">2</p>
+                  <p className="text-4xl font-light mb-1">{stats?.certificates || 0}</p>
                   <p className="text-sm text-slate-500 font-light">Certificados</p>
                 </div>
               </div>
@@ -231,7 +198,7 @@ export default function StudentDashboard() {
                   <Flame className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-4xl font-light mb-1">7</p>
+                  <p className="text-4xl font-light mb-1">{stats?.streak || 0}</p>
                   <p className="text-sm text-slate-500 font-light">Racha Actual</p>
                 </div>
               </div>
@@ -247,48 +214,67 @@ export default function StudentDashboard() {
           className="mb-20"
         >
           <h2 className="text-4xl font-light mb-12 tracking-tight">Continúa Aprendiendo</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {courses.map((course, index) => (
-              <motion.div
-                key={course.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9 + index * 0.1 }}
-              >
-                <Card className="overflow-hidden border-0 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 group bg-white">
-                  <div className="p-8">
-                    <div className="text-6xl mb-6">{course.image}</div>
-                    <Badge variant="outline" className="mb-4 border-slate-200 rounded-full px-4 py-1 text-xs font-light">
-                      {course.category}
-                    </Badge>
-                    <h3 className="font-medium text-xl mb-3 line-clamp-2 group-hover:text-purple-600 transition-colors">
-                      {course.title}
-                    </h3>
-                    <p className="text-sm text-slate-400 mb-6 font-light">👨‍🏫 {course.instructor}</p>
-                    
-                    <div className="space-y-3 mb-6">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400 font-light">Progreso</span>
-                        <span className="font-medium text-purple-600">{course.progress}%</span>
+          
+          {courses && courses.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-8">
+              {courses.map((course: any, index: number) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9 + index * 0.1 }}
+                >
+                  <Card className="overflow-hidden border-0 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 group bg-white">
+                    <div className="p-8">
+                      <div className="text-6xl mb-6">
+                        {course.nivel === 'BASICO' && '📚'}
+                        {course.nivel === 'INTERMEDIO' && '💻'}
+                        {course.nivel === 'AVANZADO' && '🚀'}
+                        {!course.nivel && '📖'}
                       </div>
-                      <Progress value={course.progress} className="h-1.5 bg-slate-100" />
-                    </div>
+                      <Badge variant="outline" className="mb-4 border-slate-200 rounded-full px-4 py-1 text-xs font-light">
+                        {course.nivel || 'Curso'}
+                      </Badge>
+                      <h3 className="font-medium text-xl mb-3 line-clamp-2 group-hover:text-purple-600 transition-colors">
+                        {course.titulo}
+                      </h3>
+                      
+                      <div className="space-y-3 mb-6">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400 font-light">Progreso</span>
+                          <span className="font-medium text-purple-600">{Math.round(course.progreso_general || 0)}%</span>
+                        </div>
+                        <Progress value={course.progreso_general || 0} className="h-1.5 bg-slate-100" />
+                      </div>
 
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl mb-6">
-                      <p className="text-xs text-purple-500 font-light mb-2">Siguiente lección:</p>
-                      <p className="text-sm font-medium text-purple-900">{course.nextLesson}</p>
-                    </div>
+                      {course.proxima_leccion && (
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl mb-6">
+                          <p className="text-xs text-purple-500 font-light mb-2">Siguiente lección:</p>
+                          <p className="text-sm font-medium text-purple-900">{course.proxima_leccion}</p>
+                        </div>
+                      )}
 
-                    <Link href={`/estudiante/curso/${course.id}`}>
-                      <Button className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 rounded-full py-6 font-medium shadow-lg shadow-purple-200 hover:shadow-xl hover:shadow-purple-300 transition-all duration-300">
-                        Continuar Curso
-                      </Button>
-                    </Link>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+                      <Link href={`/estudiante/curso/${course.id}`}>
+                        <Button className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 rounded-full py-6 font-medium shadow-lg shadow-purple-200 hover:shadow-xl hover:shadow-purple-300 transition-all duration-300">
+                          Continuar Curso
+                        </Button>
+                      </Link>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-12 text-center rounded-3xl">
+              <BookOpen className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+              <p className="text-slate-500 mb-4">No tienes cursos activos</p>
+              <Link href="/estudiante/mis-cursos">
+                <Button className="bg-purple-600 hover:bg-purple-700">
+                  Explorar Cursos
+                </Button>
+              </Link>
+            </Card>
+          )}
         </motion.div>
 
         {/* Upcoming & Achievements */}

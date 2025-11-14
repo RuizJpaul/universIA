@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -37,22 +37,24 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 
 export default function Perfil() {
-  const { isAuthenticated, user, logout } = useAuth()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: "+34 612 345 678",
-    location: "Madrid, España",
-    birthday: "1995-05-15",
-    website: "www.ejemplo.com",
-    bio: "Apasionado por la tecnología y el aprendizaje continuo. Estudiante de desarrollo web full stack.",
-    linkedin: "linkedin.com/in/usuario",
-    github: "github.com/usuario",
-    twitter: "@usuario",
+    firstName: "",
+    lastName: "",
+    email: "",
+    specialty: "",
+    academicLevel: "",
+    bio: "",
+    profilePicture: "",
+    linkedinUrl: "",
+    githubUrl: "",
+    portfolioUrl: "",
   })
 
   const [notifications, setNotifications] = useState({
@@ -72,21 +74,100 @@ export default function Perfil() {
   })
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login")
+    if (status === "unauthenticated") {
+      router.push("/auth/login")
     }
-  }, [isAuthenticated, router])
+  }, [status, router])
 
-  if (!isAuthenticated || !user) {
-    return null
+  // Fetch profile data from API
+  useEffect(() => {
+    if (status === "authenticated") {
+      async function fetchProfile() {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/estudiante/perfil')
+          
+          if (!res.ok) {
+            throw new Error('Error al cargar perfil')
+          }
+          
+          const data = await res.json()
+          
+          if (data.success && data.profile) {
+            setFormData({
+              firstName: data.profile.firstName || "",
+              lastName: data.profile.lastName || "",
+              email: data.profile.email || "",
+              specialty: data.profile.specialty || "",
+              academicLevel: data.profile.academicLevel || "",
+              bio: data.profile.bio || "",
+              profilePicture: data.profile.profilePicture || "",
+              linkedinUrl: data.profile.linkedinUrl || "",
+              githubUrl: data.profile.githubUrl || "",
+              portfolioUrl: data.profile.portfolioUrl || "",
+            })
+          } else {
+            throw new Error(data.error || 'Error desconocido')
+          }
+        } catch (err: any) {
+          console.error('Error fetching profile:', err)
+          setError(err.message)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      fetchProfile()
+    }
+  }, [status])
+
+  // Save profile changes
+  async function handleSave() {
+    try {
+      setIsSaving(true)
+      const res = await fetch('/api/estudiante/perfil', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setIsEditing(false)
+        // Show success message
+        alert('Perfil actualizado correctamente')
+      } else {
+        throw new Error(data.error || 'Error al guardar')
+      }
+    } catch (err: any) {
+      console.error('Error saving profile:', err)
+      alert('Error al guardar cambios: ' + err.message)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    // Simular guardado
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsSaving(false)
-    setIsEditing(false)
+  if (status === "loading" || loading || !session) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+    </div>
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-8 max-w-md">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
+          <p className="text-slate-600">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Reintentar
+          </Button>
+        </Card>
+      </div>
+    )
   }
 
   const handleChange = (field: string, value: string) => {
@@ -124,11 +205,11 @@ export default function Perfil() {
               </Button>
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
-                  <p className="font-bold text-sm">{user.name}</p>
+                  <p className="font-bold text-sm">{session?.user?.name || session?.user?.email}</p>
                   <p className="text-xs text-slate-500">Estudiante</p>
                 </div>
                 <Button
-                  onClick={logout}
+                  onClick={() => signOut({ callbackUrl: "/" })}
                   variant="outline"
                   size="icon"
                   className="border-slate-200"
@@ -164,18 +245,22 @@ export default function Perfil() {
               <Card className="p-6 border-2 border-slate-200 text-center">
                 <div className="relative inline-block mb-4">
                   <div className="w-32 h-32 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-5xl font-black">
-                    {user.name.charAt(0)}
+                    {(session?.user?.name || session?.user?.email || 'U').charAt(0)}
                   </div>
                   <button className="absolute bottom-0 right-0 w-10 h-10 bg-purple-600 hover:bg-purple-700 rounded-full flex items-center justify-center text-white border-4 border-white transition-all">
                     <Camera className="w-5 h-5" />
                   </button>
                 </div>
                 
-                <h3 className="text-xl font-black mb-1">{user.name}</h3>
-                <p className="text-slate-600 mb-4">{user.email}</p>
+                <h3 className="text-xl font-black mb-1">
+                  {formData.firstName && formData.lastName 
+                    ? `${formData.firstName} ${formData.lastName}` 
+                    : session?.user?.name || session?.user?.email}
+                </h3>
+                <p className="text-slate-600 mb-4">{formData.email || session?.user?.email}</p>
                 
                 <Badge className="bg-purple-100 text-purple-700 border-purple-300 mb-4">
-                  Estudiante Avanzado
+                  {formData.specialty ? formData.specialty.replace(/_/g, ' ') : 'Estudiante'}
                 </Badge>
 
                 <div className="grid grid-cols-3 gap-3 mb-4 text-center">
@@ -293,16 +378,32 @@ export default function Perfil() {
                     <div className="p-6 space-y-6">
                       <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label htmlFor="name" className="flex items-center gap-2">
+                          <Label htmlFor="firstName" className="flex items-center gap-2">
                             <User className="w-4 h-4 text-purple-600" />
-                            Nombre Completo
+                            Nombre
                           </Label>
                           <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => handleChange("name", e.target.value)}
+                            id="firstName"
+                            value={formData.firstName}
+                            onChange={(e) => handleChange("firstName", e.target.value)}
                             disabled={!isEditing}
                             className="border-2 border-slate-200 focus:border-purple-600"
+                            placeholder="Tu nombre"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName" className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-purple-600" />
+                            Apellido
+                          </Label>
+                          <Input
+                            id="lastName"
+                            value={formData.lastName}
+                            onChange={(e) => handleChange("lastName", e.target.value)}
+                            disabled={!isEditing}
+                            className="border-2 border-slate-200 focus:border-purple-600"
+                            placeholder="Tu apellido"
                           />
                         </div>
 
@@ -315,67 +416,52 @@ export default function Perfil() {
                             id="email"
                             type="email"
                             value={formData.email}
-                            onChange={(e) => handleChange("email", e.target.value)}
-                            disabled={!isEditing}
-                            className="border-2 border-slate-200 focus:border-purple-600"
+                            disabled={true}
+                            className="border-2 border-slate-200 bg-slate-50"
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="phone" className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-purple-600" />
-                            Teléfono
+                          <Label htmlFor="specialty" className="flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-purple-600" />
+                            Especialidad
                           </Label>
-                          <Input
-                            id="phone"
-                            value={formData.phone}
-                            onChange={(e) => handleChange("phone", e.target.value)}
+                          <select
+                            id="specialty"
+                            value={formData.specialty}
+                            onChange={(e) => handleChange("specialty", e.target.value)}
                             disabled={!isEditing}
-                            className="border-2 border-slate-200 focus:border-purple-600"
-                          />
+                            className="flex h-10 w-full rounded-md border-2 border-slate-200 bg-white px-3 py-2 text-sm focus:border-purple-600 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="">Selecciona tu especialidad</option>
+                            <option value="INGENIERIA_SISTEMAS">Ingeniería de Sistemas</option>
+                            <option value="INGENIERIA_ELECTRONICA">Ingeniería Electrónica</option>
+                            <option value="INGENIERIA_INDUSTRIAL">Ingeniería Industrial</option>
+                            <option value="INGENIERIA_CIVIL">Ingeniería Civil</option>
+                            <option value="INGENIERIA_MECANICA">Ingeniería Mecánica</option>
+                            <option value="OTRA">Otra</option>
+                          </select>
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="location" className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-purple-600" />
-                            Ubicación
+                          <Label htmlFor="academicLevel" className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-purple-600" />
+                            Nivel Académico
                           </Label>
-                          <Input
-                            id="location"
-                            value={formData.location}
-                            onChange={(e) => handleChange("location", e.target.value)}
+                          <select
+                            id="academicLevel"
+                            value={formData.academicLevel}
+                            onChange={(e) => handleChange("academicLevel", e.target.value)}
                             disabled={!isEditing}
-                            className="border-2 border-slate-200 focus:border-purple-600"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="birthday" className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-purple-600" />
-                            Fecha de Nacimiento
-                          </Label>
-                          <Input
-                            id="birthday"
-                            type="date"
-                            value={formData.birthday}
-                            onChange={(e) => handleChange("birthday", e.target.value)}
-                            disabled={!isEditing}
-                            className="border-2 border-slate-200 focus:border-purple-600"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="website" className="flex items-center gap-2">
-                            <Globe className="w-4 h-4 text-purple-600" />
-                            Sitio Web
-                          </Label>
-                          <Input
-                            id="website"
-                            value={formData.website}
-                            onChange={(e) => handleChange("website", e.target.value)}
-                            disabled={!isEditing}
-                            className="border-2 border-slate-200 focus:border-purple-600"
-                          />
+                            className="flex h-10 w-full rounded-md border-2 border-slate-200 bg-white px-3 py-2 text-sm focus:border-purple-600 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="">Selecciona tu nivel</option>
+                            <option value="PREGRADO">Pregrado</option>
+                            <option value="POSGRADO">Posgrado</option>
+                            <option value="MAESTRIA">Maestría</option>
+                            <option value="DOCTORADO">Doctorado</option>
+                            <option value="PROFESIONAL">Profesional</option>
+                          </select>
                         </div>
                       </div>
 
@@ -392,36 +478,48 @@ export default function Perfil() {
                       </div>
 
                       <div className="border-t pt-6">
-                        <h4 className="font-black mb-4">Redes Sociales</h4>
+                        <h4 className="font-black mb-4">Enlaces Profesionales</h4>
                         <div className="grid md:grid-cols-3 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="linkedin">LinkedIn</Label>
+                            <Label htmlFor="linkedinUrl" className="flex items-center gap-2">
+                              <Globe className="w-4 h-4 text-purple-600" />
+                              LinkedIn
+                            </Label>
                             <Input
-                              id="linkedin"
-                              value={formData.linkedin}
-                              onChange={(e) => handleChange("linkedin", e.target.value)}
+                              id="linkedinUrl"
+                              value={formData.linkedinUrl}
+                              onChange={(e) => handleChange("linkedinUrl", e.target.value)}
                               disabled={!isEditing}
                               className="border-2 border-slate-200 focus:border-purple-600"
+                              placeholder="https://linkedin.com/in/..."
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="github">GitHub</Label>
+                            <Label htmlFor="githubUrl" className="flex items-center gap-2">
+                              <Globe className="w-4 h-4 text-purple-600" />
+                              GitHub
+                            </Label>
                             <Input
-                              id="github"
-                              value={formData.github}
-                              onChange={(e) => handleChange("github", e.target.value)}
+                              id="githubUrl"
+                              value={formData.githubUrl}
+                              onChange={(e) => handleChange("githubUrl", e.target.value)}
                               disabled={!isEditing}
                               className="border-2 border-slate-200 focus:border-purple-600"
+                              placeholder="https://github.com/..."
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="twitter">Twitter/X</Label>
+                            <Label htmlFor="portfolioUrl" className="flex items-center gap-2">
+                              <Globe className="w-4 h-4 text-purple-600" />
+                              Portafolio
+                            </Label>
                             <Input
-                              id="twitter"
-                              value={formData.twitter}
-                              onChange={(e) => handleChange("twitter", e.target.value)}
+                              id="portfolioUrl"
+                              value={formData.portfolioUrl}
+                              onChange={(e) => handleChange("portfolioUrl", e.target.value)}
                               disabled={!isEditing}
                               className="border-2 border-slate-200 focus:border-purple-600"
+                              placeholder="https://..."
                             />
                           </div>
                         </div>

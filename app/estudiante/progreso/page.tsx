@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -19,123 +19,95 @@ import {
   Flame,
   Download,
   Share2,
-  Bell,
-  LogOut,
-  Home,
-  User,
   ChevronRight,
   Medal,
   Zap,
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import StudentNavbar from "@/components/student-navbar"
 
 export default function Progreso() {
-  const { isAuthenticated, user, logout } = useAuth()
+  const { data: session, status } = useSession()
   const router = useRouter()
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login")
-    }
-  }, [isAuthenticated, router])
+  // Estados para datos de la API
+  const [progresoData, setProgresoData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!isAuthenticated || !user) {
-    return null
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/login")
+    }
+  }, [status, router])
+
+  // Fetch progreso data from API
+  useEffect(() => {
+    if (status === "authenticated") {
+      async function fetchProgreso() {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/estudiante/progreso')
+          
+          if (!res.ok) {
+            throw new Error('Error al cargar progreso')
+          }
+          
+          const data = await res.json()
+          
+          if (data.success) {
+            setProgresoData(data)
+          } else {
+            throw new Error(data.error || 'Error desconocido')
+          }
+        } catch (err: any) {
+          console.error('Error fetching progreso:', err)
+          setError(err.message)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      fetchProgreso()
+    }
+  }, [status])
+
+  if (status === "loading" || loading || !session) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+    </div>
   }
 
-  const achievements = [
-    { id: 1, title: "Primera Lección", description: "Completa tu primera lección", icon: "🎯", unlocked: true, date: "Hace 3 meses" },
-    { id: 2, title: "Maratonista", description: "Estudia 7 días seguidos", icon: "🏃", unlocked: true, date: "Hace 1 semana" },
-    { id: 3, title: "Perfeccionista", description: "Obtén 100% en un examen", icon: "💯", unlocked: true, date: "Hace 2 semanas" },
-    { id: 4, title: "Graduado", description: "Completa tu primer curso", icon: "🎓", unlocked: true, date: "Hace 1 mes" },
-    { id: 5, title: "Experto", description: "Completa 5 cursos", icon: "⭐", unlocked: false, progress: 40 },
-    { id: 6, title: "Maestro", description: "Completa 10 cursos", icon: "👑", unlocked: false, progress: 20 },
-    { id: 7, title: "Nocturno", description: "Estudia después de medianoche", icon: "🌙", unlocked: false, progress: 0 },
-    { id: 8, title: "Madrugador", description: "Estudia antes de las 6am", icon: "☀️", unlocked: false, progress: 0 },
-  ]
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-8 max-w-md">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
+          <p className="text-slate-600">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Reintentar
+          </Button>
+        </Card>
+      </div>
+    )
+  }
 
-  const monthlyProgress = [
-    { month: "Ene", hours: 18, courses: 2 },
-    { month: "Feb", hours: 22, courses: 2 },
-    { month: "Mar", hours: 28, courses: 3 },
-    { month: "Abr", hours: 32, courses: 3 },
-    { month: "May", hours: 35, courses: 4 },
-    { month: "Jun", hours: 40, courses: 5 },
-  ]
-
-  const certificates = [
-    { id: 1, course: "Marketing Digital Avanzado", date: "15 Oct 2024", instructor: "Mtra. Sofia Torres", grade: "98%" },
-    { id: 2, course: "Excel para Análisis de Datos", date: "22 Sep 2024", instructor: "Ing. Roberto Silva", grade: "95%" },
-  ]
+  const { achievements, certificates, monthlyProgress, learningActivity, globalStats } = progresoData || {}
 
   const stats = {
-    totalHours: 124,
-    coursesCompleted: 2,
-    coursesActive: 3,
-    streak: 7,
-    totalPoints: 2850,
+    totalHours: globalStats?.totalHours || 0,
+    coursesCompleted: globalStats?.coursesCompleted || 0,
+    coursesActive: globalStats?.totalCoursesEnrolled - globalStats?.coursesCompleted || 0,
+    streak: 7, // TODO: Calcular desde actividad
+    totalPoints: globalStats?.achievementsEarned * 100 || 0,
     nextLevel: 3500,
     rank: "Avanzado",
   }
 
-  const learningActivity = [
-    { date: "2024-11-12", lessons: 3, hours: 2.5 },
-    { date: "2024-11-11", lessons: 2, hours: 1.5 },
-    { date: "2024-11-10", lessons: 4, hours: 3.2 },
-    { date: "2024-11-09", lessons: 2, hours: 2.0 },
-    { date: "2024-11-08", lessons: 3, hours: 2.8 },
-    { date: "2024-11-07", lessons: 1, hours: 1.2 },
-    { date: "2024-11-06", lessons: 2, hours: 1.8 },
-  ]
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar del Estudiante */}
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-black">
-              UNIVERSIA
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/estudiante/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition">
-                <Home className="w-4 h-4" />
-                Dashboard
-              </Link>
-              <Link href="/estudiante/mis-cursos" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition">
-                <BookOpen className="w-4 h-4" />
-                Mis Cursos
-              </Link>
-              <Link href="/estudiante/progreso" className="flex items-center gap-2 text-purple-600 font-bold">
-                <TrendingUp className="w-4 h-4" />
-                Progreso
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
-                <Bell className="w-5 h-5" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <p className="font-bold text-sm">{user.name}</p>
-                  <p className="text-xs text-slate-500">Estudiante</p>
-                </div>
-                <Button
-                  onClick={logout}
-                  variant="outline"
-                  size="icon"
-                  className="border-slate-200"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StudentNavbar />
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
@@ -236,18 +208,22 @@ export default function Progreso() {
               <Card className="p-6 border-2 border-slate-200">
                 <h3 className="text-xl font-black mb-6">Progreso Mensual</h3>
                 <div className="space-y-4">
-                  {monthlyProgress.map((month, index) => (
-                    <div key={month.month}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-slate-700">{month.month}</span>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-purple-600 font-bold">{month.hours}h</span>
-                          <span className="text-slate-600">{month.courses} cursos</span>
+                  {monthlyProgress && monthlyProgress.length > 0 ? (
+                    monthlyProgress.map((month: any, index: number) => (
+                      <div key={index}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-slate-700">{month.mes}</span>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-purple-600 font-bold">{month.horas_estudiadas || 0}h</span>
+                            <span className="text-slate-600">{month.lecciones_completadas || 0} lecciones</span>
+                          </div>
                         </div>
+                        <Progress value={Math.min((month.horas_estudiadas / 40) * 100, 100)} className="h-2" />
                       </div>
-                      <Progress value={(month.hours / 40) * 100} className="h-2" />
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-slate-500 text-center py-4">No hay datos de progreso mensual</p>
+                  )}
                 </div>
               </Card>
             </motion.div>
@@ -261,31 +237,29 @@ export default function Progreso() {
               <Card className="p-6 border-2 border-slate-200">
                 <h3 className="text-xl font-black mb-6">Actividad Reciente</h3>
                 <div className="space-y-3">
-                  {learningActivity.map((activity, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border-2 border-slate-200">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <Calendar className="w-6 h-6 text-purple-600" />
+                  {learningActivity && learningActivity.length > 0 ? (
+                    learningActivity.map((activity: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border-2 border-slate-200">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <Calendar className="w-6 h-6 text-purple-600" />
+                          </div>
+                          <div>
+                            <p className="font-bold">{activity.curso_titulo || 'Curso'}</p>
+                            <p className="text-sm text-slate-600">
+                              {activity.lecciones_completadas || 0} lecciones completadas
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold">
-                            {new Date(activity.date).toLocaleDateString('es-ES', { 
-                              day: 'numeric', 
-                              month: 'long',
-                              weekday: 'long' 
-                            })}
-                          </p>
-                          <p className="text-sm text-slate-600">
-                            {activity.lessons} lecciones completadas
-                          </p>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-purple-600">{activity.horas_estudiadas || 0}h</p>
+                          <p className="text-xs text-slate-500">tiempo estudiado</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-black text-purple-600">{activity.hours}h</p>
-                        <p className="text-xs text-slate-500">tiempo estudiado</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-slate-500 text-center py-4">No hay actividad reciente</p>
+                  )}
                 </div>
               </Card>
             </motion.div>
@@ -300,38 +274,45 @@ export default function Progreso() {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-black">Mis Certificados 🎓</h3>
                   <Badge className="bg-green-100 text-green-700 border-green-300">
-                    {certificates.length} obtenidos
+                    {certificates?.length || 0} obtenidos
                   </Badge>
                 </div>
                 <div className="space-y-4">
-                  {certificates.map((cert) => (
-                    <div key={cert.id} className="p-6 bg-gradient-to-r from-purple-50 to-white rounded-lg border-2 border-purple-200 hover:border-purple-600 transition-all">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Medal className="w-6 h-6 text-yellow-500" />
-                            <h4 className="font-black text-lg">{cert.course}</h4>
+                  {certificates && certificates.length > 0 ? (
+                    certificates.map((cert: any) => (
+                      <div key={cert.id} className="p-6 bg-gradient-to-r from-purple-50 to-white rounded-lg border-2 border-purple-200 hover:border-purple-600 transition-all">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Medal className="w-6 h-6 text-yellow-500" />
+                              <h4 className="font-black text-lg">{cert.curso_titulo}</h4>
+                            </div>
+                            <p className="text-sm text-slate-600">Emitido el {new Date(cert.fecha_emision).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <div className="mt-3 flex items-center gap-2">
+                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              <span className="font-bold text-purple-600">Calificación: {cert.calificacion_final ? `${Math.round(cert.calificacion_final)}%` : 'Aprobado'}</span>
+                            </div>
                           </div>
-                          <p className="text-sm text-slate-600 mb-1">Instructor: {cert.instructor}</p>
-                          <p className="text-sm text-slate-600">Emitido el {cert.date}</p>
-                          <div className="mt-3 flex items-center gap-2">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-bold text-purple-600">Calificación: {cert.grade}</span>
+                          <div className="flex flex-col gap-2">
+                            <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                              <Download className="w-4 h-4 mr-2" />
+                              Descargar
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-2 border-slate-200">
+                              <Share2 className="w-4 h-4 mr-2" />
+                              Compartir
+                            </Button>
                           </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                            <Download className="w-4 h-4 mr-2" />
-                            Descargar
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-2 border-slate-200">
-                            <Share2 className="w-4 h-4 mr-2" />
-                            Compartir
-                          </Button>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <Award className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+                      <p className="text-slate-500">Aún no has obtenido certificados</p>
+                      <p className="text-sm text-slate-400 mt-2">Completa un curso para obtener tu primer certificado</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </Card>
             </motion.div>
@@ -350,37 +331,35 @@ export default function Progreso() {
                   <Trophy className="w-6 h-6 text-yellow-500" />
                 </div>
                 <div className="space-y-3">
-                  {achievements.map((achievement) => (
-                    <div
-                      key={achievement.id}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        achievement.unlocked
-                          ? "bg-gradient-to-r from-yellow-50 to-white border-yellow-300 hover:border-yellow-500"
-                          : "bg-slate-50 border-slate-200 opacity-60"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="text-3xl">{achievement.icon}</div>
-                        <div className="flex-1">
-                          <h4 className="font-bold mb-1">{achievement.title}</h4>
-                          <p className="text-xs text-slate-600 mb-2">{achievement.description}</p>
-                          {achievement.unlocked ? (
-                            <div className="flex items-center gap-1 text-xs text-green-600">
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>{achievement.date}</span>
-                            </div>
-                          ) : achievement.progress ? (
-                            <div className="space-y-1">
-                              <Progress value={achievement.progress} className="h-1" />
-                              <p className="text-xs text-slate-500">{achievement.progress}% completado</p>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-slate-500">🔒 Bloqueado</p>
-                          )}
+                  {achievements && achievements.length > 0 ? (
+                    achievements.map((achievement: any) => (
+                      <div
+                        key={achievement.id}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          achievement.obtenido
+                            ? "bg-gradient-to-r from-yellow-50 to-white border-yellow-300 hover:border-yellow-500"
+                            : "bg-slate-50 border-slate-200 opacity-60"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="text-3xl">{achievement.icono || '🏆'}</div>
+                          <div className="flex-1">
+                            <h4 className="font-bold mb-1">{achievement.nombre}</h4>
+                            <p className="text-xs text-slate-600 mb-2">{achievement.descripcion}</p>
+                            {achievement.obtenido ? (
+                              <div className="flex items-center gap-1 text-xs text-green-600">
+                                <span>✓ {achievement.fecha_obtencion ? new Date(achievement.fecha_obtencion).toLocaleDateString('es-ES') : 'Desbloqueado'}</span>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-slate-500">🔒 {achievement.puntos} pts para desbloquear</p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-slate-500 text-center py-4">No hay logros disponibles</p>
+                  )}
                 </div>
               </Card>
             </motion.div>
