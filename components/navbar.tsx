@@ -57,7 +57,7 @@ export const Navbar = () => {
     <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200/50">
       <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
         <Link href="/" className="text-3xl font-black tracking-tight hover:opacity-80 transition">
-          UNIVERSIA
+          OPENUP
         </Link>
 
         {/* Desktop Navigation */}

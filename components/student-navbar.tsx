@@ -50,7 +50,7 @@ export default function StudentNavbar() {
       <div className="max-w-7xl mx-auto px-8 py-6">
         <div className="flex items-center justify-between">
           <Link href="/" className="text-2xl font-light tracking-wide hover:opacity-80 transition">
-            UNIVERSIA
+            OPENUP
           </Link>
           
           <nav className="hidden md:flex items-center gap-8">
